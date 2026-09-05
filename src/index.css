@@ -1,0 +1,135 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'IBM Plex Sans Arabic', system-ui, sans-serif;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-surface: var(--surface);
+  --color-surface-foreground: var(--surface-foreground);
+
+  --color-primary: var(--primary);
+  --color-primary-dark: var(--primary-dark);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-border: var(--border);
+
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-danger: var(--danger);
+  --color-danger-foreground: var(--danger-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+
+  --shadow-neu-outer: var(--shadow-neu-outer);
+  --shadow-neu-inner: var(--shadow-neu-inner);
+  --shadow-soft: var(--shadow-soft);
+}
+
+@layer base {
+  :root {
+    /* LIGHT MODE (Premium Enterprise) */
+    --background: #F5F5F4;
+    --foreground: #18181B;
+
+    --surface: #FFFFFF;
+    --surface-foreground: #18181B;
+
+    --primary: #C59D5F;
+    --primary-dark: #A67C3A;
+    --primary-foreground: #FFFFFF;
+
+    --muted: #F4F4F5;
+    --muted-foreground: #71717A;
+
+    --border: #E4E4E7;
+
+    --success: #10B981;
+    --success-foreground: #FFFFFF;
+    --warning: #F59E0B;
+    --warning-foreground: #FFFFFF;
+    --danger: #EF4444;
+    --danger-foreground: #FFFFFF;
+    --info: #3B82F6;
+    --info-foreground: #FFFFFF;
+
+    /* Hybrid Neumorphism & Soft Depth */
+    --shadow-neu-outer: 4px 4px 10px rgba(0, 0, 0, 0.03), -4px -4px 10px rgba(255, 255, 255, 0.8);
+    --shadow-neu-inner: inset 2px 2px 5px rgba(0, 0, 0, 0.04), inset -2px -2px 5px rgba(255, 255, 255, 0.8);
+    --shadow-soft: 0 4px 20px -2px rgba(0, 0, 0, 0.04);
+  }
+
+  .dark {
+    /* DARK MODE */
+    --background: #18181B;
+    --foreground: #FAFAFA;
+
+    --surface: #27272A;
+    --surface-foreground: #FAFAFA;
+
+    --primary: #C59D5F;
+    --primary-dark: #A67C3A;
+    --primary-foreground: #FFFFFF;
+
+    --muted: #3F3F46;
+    --muted-foreground: #A1A1AA;
+
+    --border: #3F3F46;
+
+    --success: #059669;
+    --success-foreground: #FFFFFF;
+    --warning: #D97706;
+    --warning-foreground: #FFFFFF;
+    --danger: #DC2626;
+    --danger-foreground: #FFFFFF;
+    --info: #2563EB;
+    --info-foreground: #FFFFFF;
+
+    --shadow-neu-outer: 4px 4px 10px rgba(0, 0, 0, 0.2), -2px -2px 10px rgba(255, 255, 255, 0.02);
+    --shadow-neu-inner: inset 3px 3px 6px rgba(0, 0, 0, 0.3), inset -2px -2px 6px rgba(255, 255, 255, 0.02);
+    --shadow-soft: 0 4px 20px -2px rgba(0, 0, 0, 0.2);
+  }
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    direction: rtl; 
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* PDF Export Utilities */
+.pdf-only {
+  display: none;
+}
+.pdf-export-mode {
+  background-color: #ffffff !important;
+  color: #000000 !important;
+}
+.pdf-export-mode * {
+  /* Enforce better contrast for PDF */
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+.pdf-export-mode .pdf-only {
+  display: flex !important;
+}
