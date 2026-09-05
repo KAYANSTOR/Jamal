@@ -25,13 +25,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (!localStorage.getItem('device_id')) {
           localStorage.setItem('device_id', `DEV-${Math.random().toString(36).substring(2, 9)}`);
         }
-        await syncEngine.initialPull();
+        // Start robust sync (periodic + auto reconnect + push then pull)
+        syncEngine.start();
       } else {
         localStorage.removeItem('auth_token');
+        syncEngine.stop();
       }
       setLoading(false);
     });
-    return unsubscribe;
+    return () => {
+      unsubscribe();
+      syncEngine.stop();
+    };
   }, []);
 
   const signIn = async () => {
@@ -45,6 +50,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const logOut = async () => {
     try {
       await signOut(auth);
+      syncEngine.stop();
     } catch (error) {
       console.error('Error signing out', error);
     }

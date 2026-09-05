@@ -29,16 +29,37 @@ function App() {
         const token = await currentUser.getIdToken();
         localStorage.setItem('auth_token', token);
         setUser(currentUser);
-        // Once logged in, trigger initial pull
-        syncEngine.initialPull().then(() => syncEngine.triggerSync());
+
+        // Ensure stable device id + start background sync engine
+        // (periodic + auto on reconnect + push then pull)
+        syncEngine.start();
       } else {
         localStorage.removeItem('auth_token');
         setUser(null);
+        syncEngine.stop();
       }
       setLoading(false);
     });
-    return unsubscribe;
+    return () => {
+      unsubscribe();
+      syncEngine.stop();
+    };
   }, []);
+
+  // Refresh Firebase token periodically so long sessions keep working
+  useEffect(() => {
+    if (!user) return;
+    const refresh = async () => {
+      try {
+        const token = await user.getIdToken(true);
+        localStorage.setItem('auth_token', token);
+      } catch (e) {
+        console.warn('Token refresh failed', e);
+      }
+    };
+    const id = setInterval(refresh, 45 * 60 * 1000); // every 45 min
+    return () => clearInterval(id);
+  }, [user]);
 
   if (loading) {
     return <div className="min-h-screen bg-[var(--color-background)] flex items-center justify-center">جاري التحميل...</div>;
