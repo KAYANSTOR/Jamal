@@ -1,4 +1,8 @@
+import fs from 'fs';
+const path = '/app/applet/src/App.tsx';
+let content = fs.readFileSync(path, 'utf8');
 
+const replacement = `
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -70,3 +74,6 @@ function App() {
   );
 }
 export default App;
+`;
+
+fs.writeFileSync(path, replacement);

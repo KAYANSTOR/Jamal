@@ -14,9 +14,9 @@ export default defineConfig(() => {
         includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'icon.svg'],
         manifest: {
           id: '/',
-          name: 'نظام إدارة المخزون',
-          short_name: 'المخزون',
-          description: 'نظام متقدم لإدارة المخزون يدعم العمل دون اتصال.',
+          name: 'إدارة المؤسسة',
+          short_name: 'إدارة المؤسسة',
+          description: 'نظام مخزون متكامل متعدد المخازن يعمل بخاصية Offline-First',
           theme_color: '#ffffff',
           background_color: '#ffffff',
           display: 'standalone',
@@ -44,6 +44,7 @@ export default defineConfig(() => {
           ],
         },
         workbox: {
+          maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
         },
         devOptions: {
