@@ -1,4 +1,6 @@
+import fs from 'fs';
 
+const content = `
 import React, { useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '../ui/dialog';
 import { Badge } from '../ui/badge';
@@ -201,3 +203,6 @@ export function WarehouseDetailsDialog({ open, onOpenChange, warehouse, stats }:
     </>
   );
 }
+`;
+
+fs.writeFileSync('src/components/warehouses/WarehouseDetailsDialog.tsx', content);
