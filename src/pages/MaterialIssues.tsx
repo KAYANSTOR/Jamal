@@ -5,7 +5,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
 import { Select } from '../components/ui/select';
-import { Plus, Search, Filter, FileText, Info, Building2, MapPin, Calendar, Ban } from 'lucide-react';
+import { Plus, Search, Filter, FileText, Info, Building2, MapPin, Calendar, Ban, CheckCircle2 } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type LocalMaterialIssue } from '../lib/db';
 import { format } from 'date-fns';
@@ -61,9 +61,27 @@ export function MaterialIssues() {
     }
   };
 
+  const handleSettleIssue = async (issue: LocalMaterialIssue) => {
+    if (!window.confirm('سيتم توفية سند الصرف وإغلاقه نهائياً بعد التأكد من معالجة كامل الكميات. هل تريد المتابعة؟')) {
+      return;
+    }
+
+    try {
+      await MaterialIssueRepository.settleMaterialIssue(issue.id);
+    } catch (err) {
+      console.error('Settle failed', err);
+      if (err instanceof Error && err.message === 'ISSUE_HAS_OUTSTANDING_QUANTITY') {
+        alert('لا يمكن توفية السند: توجد كميات لم تُرجع أو تُستبدل بعد.');
+      } else {
+        alert(err instanceof Error ? err.message : 'فشل في توفية السند');
+      }
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch(status) {
       case 'POSTED': return <span className="px-2.5 py-1 text-xs font-medium rounded-full bg-[var(--color-success)]/10 text-[var(--color-success)]">معتمد</span>;
+      case 'SETTLED': return <span className="px-2.5 py-1 text-xs font-medium rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)]">موفّى</span>;
       case 'CANCELLED': return <span className="px-2.5 py-1 text-xs font-medium rounded-full bg-[var(--color-danger)]/10 text-[var(--color-danger)]">ملغي</span>;
       default: return <span className="px-2.5 py-1 text-xs font-medium rounded-full bg-[var(--color-muted)] text-[var(--color-muted-foreground)]">{status}</span>;
     }
@@ -105,6 +123,7 @@ export function MaterialIssues() {
               >
                 <option value="ALL">الكل</option>
                 <option value="POSTED">معتمد</option>
+                <option value="SETTLED">موفّى</option>
                 <option value="CANCELLED">ملغي</option>
               </Select>
             </div>
@@ -186,15 +205,26 @@ export function MaterialIssues() {
                             <Info size={14} />
                           </Button>
                           {issue.status === 'POSTED' && (
-                            <Button 
-                              variant="secondary" 
-                              size="icon" 
-                              className="h-8 w-8 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10"
-                              onClick={() => handleCancelIssue(issue)}
-                              title="إلغاء السند"
-                            >
-                              <Ban size={14} />
-                            </Button>
+                            <>
+                              <Button
+                                variant="secondary"
+                                size="icon"
+                                className="h-8 w-8 text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10"
+                                onClick={() => handleSettleIssue(issue)}
+                                title="توفية وإغلاق السند"
+                              >
+                                <CheckCircle2 size={14} />
+                              </Button>
+                              <Button
+                                variant="secondary"
+                                size="icon"
+                                className="h-8 w-8 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10"
+                                onClick={() => handleCancelIssue(issue)}
+                                title="إلغاء السند"
+                              >
+                                <Ban size={14} />
+                              </Button>
+                            </>
                           )}
                         </div>
                       </TableCell>

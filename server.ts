@@ -243,6 +243,8 @@ async function startServer() {
             
             if (issueRecord.status === 'CANCELLED') {
               // Already cancelled, idempotent success
+            } else if (issueRecord.status === 'SETTLED') {
+              throw new Error('Cannot cancel a settled issue');
             } else {
               // 2. Revert stock balances and add reversing movements
               const items = await tx.select().from(materialIssueItems).where(and(eq(materialIssueItems.issueId, issueId), eq(materialIssueItems.organizationId, orgId)));
@@ -304,8 +306,8 @@ async function startServer() {
             if (issueRows.rows.length === 0) throw new Error('Issue not found');
             const issueRecord = issueRows.rows[0];
 
-            if (issueRecord.status === 'CANCELLED') {
-              throw new Error('Cannot return from a cancelled issue');
+            if (['CANCELLED', 'SETTLED'].includes(issueRecord.status as string)) {
+              throw new Error('Cannot return from a cancelled or settled issue');
             }
 
             if (!returnData.items || !Array.isArray(returnData.items) || returnData.items.length === 0) {
@@ -391,8 +393,8 @@ async function startServer() {
             if (issueRows.rows.length === 0) throw new Error('Issue not found');
             const issueRecord = issueRows.rows[0];
 
-            if (issueRecord.status === 'CANCELLED') {
-              throw new Error('Cannot exchange from a cancelled issue');
+            if (['CANCELLED', 'SETTLED'].includes(issueRecord.status as string)) {
+              throw new Error('Cannot exchange from a cancelled or settled issue');
             }
 
             if (!exchangeData.items || !Array.isArray(exchangeData.items) || exchangeData.items.length === 0) {
@@ -504,6 +506,76 @@ async function startServer() {
               entityId: issueId,
               afterState: JSON.stringify(exchangeData)
             });
+
+          } else if (op.entityType === 'SETTLE_MATERIAL_ISSUE') {
+            const settleData = op.payload;
+            const issueId = settleData.id;
+
+            // Lock the issue so two devices cannot settle it concurrently.
+            const issueRows = await tx.execute(sql`
+              SELECT status
+              FROM material_issues
+              WHERE id = ${issueId} AND organization_id = ${orgId}
+              FOR UPDATE
+            `);
+            if (issueRows.rows.length === 0) throw new Error('Issue not found');
+
+            const issueStatus = issueRows.rows[0].status as string;
+            if (issueStatus === 'CANCELLED') {
+              throw new Error('Cannot settle a cancelled issue');
+            }
+            if (issueStatus === 'SETTLED') {
+              // A second settle operation is a safe no-op.
+            } else {
+              if (issueStatus !== 'POSTED') {
+                throw new Error(`Only POSTED issues can be settled (current status: ${issueStatus})`);
+              }
+
+              const items = await tx.select({
+                quantity: materialIssueItems.quantity,
+                returnedQuantity: materialIssueItems.returnedQuantity,
+                exchangedQuantity: materialIssueItems.exchangedQuantity,
+              }).from(materialIssueItems).where(and(
+                eq(materialIssueItems.issueId, issueId),
+                eq(materialIssueItems.organizationId, orgId),
+              ));
+
+              if (items.length === 0) throw new Error('Issue has no items');
+
+              const outstanding = items.reduce((total, item) => {
+                const remaining = new Decimal(item.quantity)
+                  .minus(new Decimal(item.returnedQuantity || '0'))
+                  .minus(new Decimal(item.exchangedQuantity || '0'));
+                return total.plus(remaining);
+              }, new Decimal(0));
+
+              if (outstanding.gt(0)) {
+                throw new Error('ISSUE_HAS_OUTSTANDING_QUANTITY');
+              }
+
+              await tx.update(materialIssues)
+                .set({
+                  status: 'SETTLED',
+                  settledAt: new Date(),
+                  settledBy: dbUser.id,
+                })
+                .where(and(
+                  eq(materialIssues.id, issueId),
+                  eq(materialIssues.organizationId, orgId),
+                ));
+
+              await tx.insert(auditLogs).values({
+                id: uuidv4(),
+                organizationId: orgId,
+                userId: dbUser.id,
+                deviceId: deviceId || 'unknown',
+                operationId: op.id,
+                action: 'MATERIAL_ISSUE_SETTLED',
+                entityType: 'material_issues',
+                entityId: issueId,
+                afterState: JSON.stringify({ status: 'SETTLED', issueId }),
+              });
+            }
 
           } else if (op.entityType === 'CREATE_PURCHASE') {
             const purchaseData = op.payload;
@@ -844,8 +916,8 @@ async function startServer() {
         });
       } catch (err: any) {
         console.error(`Sync error on operation ${op.id}:`, err);
-        if (err.message === 'INSUFFICIENT_STOCK') {
-          results.push({ id: op.id, status: 'conflict', reason: 'INSUFFICIENT_STOCK' });
+        if (['INSUFFICIENT_STOCK', 'ISSUE_HAS_OUTSTANDING_QUANTITY'].includes(err.message)) {
+          results.push({ id: op.id, status: 'conflict', reason: err.message });
         } else {
           results.push({ id: op.id, status: 'error', message: err.message });
         }

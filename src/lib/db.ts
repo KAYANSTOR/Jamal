@@ -142,6 +142,8 @@ export interface LocalMaterialIssue {
   issuedBy: string;
   date: string;
   notes?: string;
+  settledAt?: string;
+  settledBy?: string;
   createdAt: string;
 }
 

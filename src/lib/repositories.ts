@@ -1,4 +1,5 @@
-import { db, type LocalWarehouse } from './db';
+import { db, syncEngine, type LocalWarehouse } from './db';
+import { Decimal } from 'decimal.js';
 import { v4 as uuidv4 } from 'uuid';
 
 export const WarehouseRepository = {
@@ -580,6 +581,53 @@ export const MaterialIssueRepository = {
       await db.outbox.add(outboxOp);
     });
 
+    return updatedIssue;
+  },
+
+  async settleMaterialIssue(id: string) {
+    const existing = await db.materialIssues.get(id);
+    if (!existing) throw new Error('Material Issue not found');
+    if (existing.status === 'SETTLED') return existing;
+    if (existing.status === 'CANCELLED') throw new Error('Cannot settle a cancelled issue');
+    if (existing.status !== 'POSTED') throw new Error('Only posted issues can be settled');
+
+    const items = await db.materialIssueItems.where('issueId').equals(id).toArray();
+    if (items.length === 0) throw new Error('Issue has no items');
+
+    const outstanding = items.reduce((total, item) => {
+      const remaining = new Decimal(item.quantity)
+        .minus(new Decimal(item.returnedQuantity || '0'))
+        .minus(new Decimal(item.exchangedQuantity || '0'));
+      return total.plus(remaining);
+    }, new Decimal(0));
+
+    if (outstanding.gt(0)) {
+      throw new Error('ISSUE_HAS_OUTSTANDING_QUANTITY');
+    }
+
+    const settledAt = new Date().toISOString();
+    const updatedIssue: import('./db').LocalMaterialIssue = {
+      ...existing,
+      status: 'SETTLED',
+      settledAt,
+    };
+    const outboxOp: import('./db').OutboxOperation = {
+      id: uuidv4(),
+      entityType: 'SETTLE_MATERIAL_ISSUE',
+      operationType: 'UPDATE',
+      payload: { id },
+      status: 'PENDING',
+      createdAt: settledAt,
+      updatedAt: settledAt,
+      retryCount: 0,
+    };
+
+    await db.transaction('rw', [db.materialIssues, db.outbox], async () => {
+      await db.materialIssues.put(updatedIssue);
+      await db.outbox.add(outboxOp);
+    });
+
+    void syncEngine.triggerSync();
     return updatedIssue;
   }
 };

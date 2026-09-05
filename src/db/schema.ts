@@ -183,10 +183,12 @@ export const materialIssues = pgTable('material_issues', {
   departmentId: text('department_id').references(() => departments.id).notNull(),
   warehouseId: text('warehouse_id').references(() => warehouses.id).notNull(),
   issueNumber: text('issue_number'),
-  status: text('status').notNull().default('DRAFT'), // DRAFT, POSTED, CANCELLED
+  status: text('status').notNull().default('DRAFT'), // DRAFT, POSTED, SETTLED, CANCELLED
   issuedBy: text('issued_by').notNull(), // User/Employee responsible
   date: timestamp('date').notNull(),
   notes: text('notes'),
+  settledAt: timestamp('settled_at'),
+  settledBy: text('settled_by').references(() => users.id),
   createdAt: timestamp('created_at').defaultNow(),
 }, (t) => [
   index('idx_material_issues_org').on(t.organizationId)
