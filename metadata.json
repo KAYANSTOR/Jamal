@@ -1,6 +1,8 @@
 {
-  "name": "نظام المخزون",
+  "name": "إدارة المؤسسة",
   "description": "نظام مخزون متكامل متعدد المخازن يعمل بخاصية Offline-First مع مزامنة سحابية",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }
